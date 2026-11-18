@@ -287,7 +287,7 @@ td .use{font:600 .78rem var(--f-body);color:var(--accent);background:none;border
   </section>
 
   <section id="v-ar" class="panel" hidden>
-    <p class="eyebrow" data-i18n="arEyebrow">Tabla de artículos · incisos SAC de referencia (DAI Guatemala 2026)</p>
+    <p class="eyebrow" data-i18n="arEyebrow">Tabla arancelaria · incisos SAC y DAI Guatemala 2026 · IVA 12% en todos</p>
     <div class="ar-tools">
       <input id="ar-q" type="search" placeholder="Buscar artículo o inciso" data-i18n-ph="arQ" aria-label="Buscar en la tabla">
       <select id="ar-src" aria-label="Categoría"><option value="all" data-i18n="todasCat">Todas las categorías</option></select>
@@ -357,14 +357,18 @@ td .use{font:600 .78rem var(--f-body);color:var(--accent);background:none;border
    Valores tomados de la calculadora de camlogistics.net (sistema Helga),
    consultada el 17-nov-2026 y verificada contra sus cotizaciones.
    flete: porLb (+ minimo) o bandas [[hasta lb, precio], ...]
-   cargos: tipo 'fijo' (US$ por envío) o 'porLb' (US$ por libra real, con minimo)
-   impuesto: pct sobre valor declarado (+ pctFlete sobre el flete), desde = valor
+   cargos: tipo 'fijo' (US$ por envío), 'pctDecl' (% del valor declarado) o 'porLb' (US$ por libra real, con minimo)
+   impuesto: tipo 'dai' (Guatemala: DAI por artículo + IVA) o pct sobre valor declarado (+ pctFlete sobre el flete), desde = valor
              declarado a partir del cual se cobra; null = no se cobra
    ===================================================================== */
 var TARIFA_BASE = {
   divisorVol: 166,   // peso volumétrico (lb) = largo × ancho × alto (in) ÷ 166
   pesoMax: 110,      // lb por caja
   destinos: {
+    // Guatemala: valores del cotizador modelo (Envíos502); DAI por inciso SAC + IVA 12% por ley
+    GT: { flete: { porLb: 3.70 },
+          cargos: [{ n: 'Cargo fijo por envío', tipo: 'fijo', v: 3 }, { n: 'Cargo 1.5% del valor declarado', tipo: 'pctDecl', v: 1.5 }],
+          ivaServicio: 12, impuesto: { n: 'DAI + IVA', tipo: 'dai', iva: 12 }, moneda: 'GTQ', tc: 8.00 },
     CO: { flete: { porLb: 1.19 },
           cargos: [{ n: 'Seguro', tipo: 'fijo', v: 10 }, { n: 'Fuel', tipo: 'porLb', v: 0.15 }, { n: 'Intermediación', tipo: 'porLb', v: 0.25, min: 2.5 }, { n: 'Import fee', tipo: 'porLb', v: 0.5, min: 5 }],
           impuesto: { n: 'Impuestos de importación (CIF)', pct: 31.055, pctFlete: 7.65, desde: 200 } },
@@ -385,8 +389,9 @@ var TARIFA_BASE = {
           cargos: [{ n: 'Seguro', tipo: 'fijo', v: 5 }, { n: 'Corte de guía', tipo: 'fijo', v: 5 }], impuesto: null }
   }
 };
-// Destinos (los mismos que tiene configurados Helga). whatsapp: agente que recibe la cotización.
+// Destinos: Guatemala (modelo) + los configurados en Helga. whatsapp: agente que recibe la cotización.
 var DESTINOS = [
+  { codigo: 'GT', nombre: { es: 'Guatemala', en: 'Guatemala', pt: 'Guatemala' }, whatsapp: '50364373753', transito: null },
   { codigo: 'CO', nombre: { es: 'Colombia', en: 'Colombia', pt: 'Colômbia' }, whatsapp: '13053161326', transito: null },
   { codigo: 'CR', nombre: { es: 'Costa Rica', en: 'Costa Rica', pt: 'Costa Rica' }, whatsapp: '50364373753', transito: null },
   { codigo: 'EC', nombre: { es: 'Ecuador', en: 'Ecuador', pt: 'Equador' }, whatsapp: '13053161326', transito: null },
@@ -599,28 +604,28 @@ const EXTRA = {
     eMin:'El peso mínimo para {d} es {n} lb.', eDecl:'Para {d} el valor declarado debe estar entre {a} y {b}.', eBanda:'Para {d} cotizamos hasta {n} lb por caja. Consulta a un agente.',
     tFlete:'Flete', tCargos:'Cargos', tImp:'Impuestos', tCond:'Condiciones', porLbTxt:'{p} por lb', minTxt:'mínimo {p}', hastaTxt:'hasta {h} lb: {p}', fijoTxt:'{n} {p}', porLbCargo:'{n} {p}/lb', desdeTxt:'si el valor declarado supera {v}', pesoMinTxt:'peso mínimo {n} lb', declTxt:'valor declarado entre {a} y {b}',
     tarHint:'Tarifa por destino tomada de la calculadora de camlogistics.net (sistema Helga). Peso facturable: el mayor entre el real y el volumétrico.', impLeg:'Impuestos', impTxt:'Cada destino cobra los impuestos que aparecen en la tabla, calculados sobre el valor declarado.', impHint:'Los cargos por libra (fuel, intermediación, import fee) se calculan sobre el peso real.',
-    arEyebrow:'Tabla de artículos · incisos SAC de referencia (DAI Guatemala 2026)' },
+    arEyebrow:'Tabla arancelaria · incisos SAC y DAI Guatemala 2026 · IVA 12% en todos' },
   en: { from:'United States', fleteP:'Freight by weight {w} lb × {p}', fleteV:'Freight by volume {w} lb × {p}', fleteMin:'Freight (minimum {p})', fleteBanda:'Freight up to {h} lb', impL:'{n} {p}% on {v}', impFl:' + {p}% of freight', sinImp:'No taxes for this destination',
     eMin:'Minimum weight for {d} is {n} lb.', eDecl:'For {d} the declared value must be between {a} and {b}.', eBanda:'For {d} we quote up to {n} lb per box. Ask an agent.',
     tFlete:'Freight', tCargos:'Charges', tImp:'Taxes', tCond:'Conditions', porLbTxt:'{p} per lb', minTxt:'minimum {p}', hastaTxt:'up to {h} lb: {p}', fijoTxt:'{n} {p}', porLbCargo:'{n} {p}/lb', desdeTxt:'if declared value exceeds {v}', pesoMinTxt:'minimum weight {n} lb', declTxt:'declared value between {a} and {b}',
     tarHint:'Rates by destination taken from the camlogistics.net calculator (Helga system). Billable weight: the higher of actual and volumetric.', impLeg:'Taxes', impTxt:'Each destination charges the taxes shown in the table, calculated on the declared value.', impHint:'Per-pound charges (fuel, brokerage, import fee) use the actual weight.',
-    arEyebrow:'Item table · reference SAC codes (Guatemala DAI 2026)' },
+    arEyebrow:'Tariff table · Guatemala SAC codes and duties (DAI) 2026 · 12% VAT on all' },
   pt: { from:'Estados Unidos', fleteP:'Frete por peso {w} lb × {p}', fleteV:'Frete por volume {w} lb × {p}', fleteMin:'Frete (mínimo {p})', fleteBanda:'Frete até {h} lb', impL:'{n} {p}% sobre {v}', impFl:' + {p}% do frete', sinImp:'Sem impostos para este destino',
     eMin:'O peso mínimo para {d} é {n} lb.', eDecl:'Para {d} o valor declarado deve estar entre {a} e {b}.', eBanda:'Para {d} cotamos até {n} lb por caixa. Consulte um agente.',
     tFlete:'Frete', tCargos:'Taxas', tImp:'Impostos', tCond:'Condições', porLbTxt:'{p} por lb', minTxt:'mínimo {p}', hastaTxt:'até {h} lb: {p}', fijoTxt:'{n} {p}', porLbCargo:'{n} {p}/lb', desdeTxt:'se o valor declarado passar de {v}', pesoMinTxt:'peso mínimo {n} lb', declTxt:'valor declarado entre {a} e {b}',
     tarHint:'Tarifa por destino tirada da calculadora de camlogistics.net (sistema Helga). Peso faturável: o maior entre o real e o volumétrico.', impLeg:'Impostos', impTxt:'Cada destino cobra os impostos mostrados na tabela, calculados sobre o valor declarado.', impHint:'As taxas por libra (fuel, intermediação, import fee) usam o peso real.',
-    arEyebrow:'Tabela de artigos · códigos SAC de referência (DAI Guatemala 2026)' }
+    arEyebrow:'Tabela tarifária · códigos SAC e DAI Guatemala 2026 · IVA 12% em todos' }
 };
 for (const l in EXTRA) Object.assign(I18N[l], EXTRA[l]);
 
 const TAR = TARIFA_BASE;
 const tarDe = c => TAR.destinos[c] || {};
-const fmtLoc = () => '';
+const fmtLoc = (n) => { const t = tarDe(DEST); return t.tc ? new Intl.NumberFormat('es-GT', { style: 'currency', currency: t.moneda }).format(Math.round(n * t.tc * 100) / 100) : ''; };
 
 const ITEMS = ARANCELES.map((a, i) => ({ id: 'a-' + i, nombre: a[0], dai: a[1], hs: a[2] || '', cat: a[3], rango: a[4] || '', nota: a[5] || '', pesoTipico: PESO_TIPICO[a[0]] || 1 }));
 const CATS = [...new Set(ITEMS.map(a => a.cat))];
 let DEST = (new URLSearchParams(location.search).get('destino') || '').toUpperCase();
-if (!DESTINOS.some(d => d.codigo === DEST)) DEST = 'CO';
+if (!DESTINOS.some(d => d.codigo === DEST)) DEST = 'GT';
 const destino = () => DESTINOS.find(d => d.codigo === DEST);
 const nombreD = d => d.nombre[LANG] || d.nombre.es;
 let CAJA = null;
@@ -631,9 +636,12 @@ function formulas(d) {
   out.push('Peso volumétrico = largo × ancho × alto ÷ ' + TAR.divisorVol + ' · peso facturable = mayor entre real y volumétrico');
   if (f.bandas) out.push('Flete = precio de la banda de peso: ' + f.bandas.map(b => '≤' + b[0] + ' lb ' + money(b[1])).join(' · '));
   else out.push(`Flete = ${money(f.porLb)} × lb facturables` + (f.minimo ? ` (mínimo ${money(f.minimo)})` : ''));
-  t.cargos.forEach(c => out.push(c.n + ' = ' + (c.tipo === 'fijo' ? money(c.v) + ' por envío' : money(c.v) + ' × lb reales' + (c.min ? ` (mínimo ${money(c.min)})` : ''))));
-  if (t.impuesto) out.push(`${t.impuesto.n} = ${pct(t.impuesto.pct)} del valor declarado` + (t.impuesto.pctFlete ? ` + ${pct(t.impuesto.pctFlete)} del flete` : '') + (t.impuesto.desde ? ` (si el valor declarado supera ${money(t.impuesto.desde)})` : ''));
-  out.push('Total a pagar = flete + cargos' + (t.impuesto ? ' + impuestos' : ''));
+  t.cargos.forEach(c => out.push(c.n + ' = ' + (c.tipo === 'fijo' ? money(c.v) + ' por envío' : c.tipo === 'pctDecl' ? pct(c.v) + ' del valor declarado' : money(c.v) + ' × lb reales' + (c.min ? ` (mínimo ${money(c.min)})` : ''))));
+  if (t.ivaServicio) out.push(`IVA servicios = (flete + cargos) × ${pct(t.ivaServicio)}`);
+  if (t.impuesto && t.impuesto.tipo === 'dai') { out.push('DAI = valor declarado × % del artículo según su inciso SAC (por ley)'); out.push(`IVA importación = (valor declarado + DAI) × ${pct(t.impuesto.iva)} (por ley)`); }
+  else if (t.impuesto) out.push(`${t.impuesto.n} = ${pct(t.impuesto.pct)} del valor declarado` + (t.impuesto.pctFlete ? ` + ${pct(t.impuesto.pctFlete)} del flete` : '') + (t.impuesto.desde ? ` (si el valor declarado supera ${money(t.impuesto.desde)})` : ''));
+  out.push('Total a pagar = flete + cargos' + (t.ivaServicio ? ' + IVA servicios' : '') + (t.impuesto ? ' + impuestos' : ''));
+  if (t.tc) out.push(`${t.moneda} = USD × ${t.tc.toFixed(2)}`);
   return out;
 }
 
@@ -644,10 +652,16 @@ function cotizar(lineas, wReal, wf, vol, d) {
   else { const x = f.porLb * Math.round(wf * 100) / 100; fl = Math.max(x, f.minimo || 0); flTxt = x < (f.minimo || 0) ? tr('fleteMin', { p: money(f.minimo) }) : tr(vol > wReal ? 'fleteV' : 'fleteP', { w: red2(wf), p: money(f.porLb) }); }
   const rr = n => Math.round(n * 100) / 100; fl = rr(fl);
   const cs = [[flTxt, fl]];
-  t.cargos.forEach(c => cs.push([c.n, rr(c.tipo === 'fijo' ? c.v : Math.max(c.v * wReal, c.min || 0))]));
+  t.cargos.forEach(c => cs.push([c.n, rr(c.tipo === 'fijo' ? c.v : c.tipo === 'pctDecl' ? c.v / 100 * p : Math.max(c.v * wReal, c.min || 0))]));
+  if (t.ivaServicio) cs.push([tr('ivaServ', { p: t.ivaServicio }), rr(cs.reduce((a, x) => a + x[1], 0) * t.ivaServicio / 100)]);
   const serv = cs.reduce((a, x) => a + x[1], 0);
   let imp = 0; const ci = [];
-  if (t.impuesto && p > (t.impuesto.desde || 0)) {
+  if (t.impuesto && t.impuesto.tipo === 'dai') {
+    let dai = 0;
+    lineas.forEach(l => { const x = l.valor * l.art.dai / 100; dai += x; ci.push([tr('daiL', { p: l.art.dai, a: lineas.length > 1 ? l.art.nombre + ' · ' : '', v: money(l.valor) }), x]); });
+    const iva = (p + dai) * t.impuesto.iva / 100; ci.push([tr('ivaImp', { p: t.impuesto.iva, v: money(p + dai) }), iva]);
+    imp = dai + iva;
+  } else if (t.impuesto && p > (t.impuesto.desde || 0)) {
     imp = rr(t.impuesto.pct / 100 * p + (t.impuesto.pctFlete || 0) / 100 * fl);
     ci.push([tr('impL', { n: t.impuesto.n, p: t.impuesto.pct, v: money(p) }) + (t.impuesto.pctFlete ? tr('impFl', { p: t.impuesto.pctFlete }) : ''), imp]);
   }
@@ -658,7 +672,7 @@ function llenarSelect(sel, valor) {
   const cur = valor ?? sel.value;
   sel.innerHTML = ''; sel.add(new Option(tr('selArt'), ''));
   const g = {}; ITEMS.forEach(a => (g[a.cat] = g[a.cat] || []).push(a));
-  for (const [k, list] of Object.entries(g)) { const og = document.createElement('optgroup'); og.label = k; list.forEach(a => og.appendChild(new Option(a.nombre, a.id))); sel.appendChild(og); }
+  for (const [k, list] of Object.entries(g)) { const og = document.createElement('optgroup'); og.label = k; list.forEach(a => og.appendChild(new Option(tarDe(DEST).impuesto && tarDe(DEST).impuesto.tipo === 'dai' ? `${a.nombre} — ${a.dai}%` : a.nombre, a.id))); sel.appendChild(og); }
   if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
 }
 function autoPeso(el) {
@@ -717,7 +731,7 @@ function pintarCajas() {
 function resumenTarifa() {
   const d = destino(), t = tarDe(d.codigo), f = t.flete;
   $('tar-resumen').className = '';
-  $('tar-resumen').textContent = nombreD(d) + ' · ' + (f.bandas ? f.bandas.map(b => '≤' + b[0] + ' lb ' + money(b[1])).join(' · ') : money(f.porLb) + '/lb' + (f.minimo ? ' · mín. ' + money(f.minimo) : '')) + (t.impuesto ? ' · ' + t.impuesto.n.toLowerCase() + ' ' + pct(t.impuesto.pct) : '');
+  $('tar-resumen').textContent = nombreD(d) + ' · ' + (f.bandas ? f.bandas.map(b => '≤' + b[0] + ' lb ' + money(b[1])).join(' · ') : money(f.porLb) + '/lb' + (f.minimo ? ' · mín. ' + money(f.minimo) : '')) + (t.cargos.some(c => c.tipo === 'fijo') ? ' · fijo ' + money(t.cargos.find(c => c.tipo === 'fijo').v) : '') + (t.impuesto ? ' · ' + (t.impuesto.tipo === 'dai' ? 'DAI + IVA ' + t.impuesto.iva + '%' : t.impuesto.n.toLowerCase() + ' ' + pct(t.impuesto.pct)) : '') + (t.tc ? ` · 1 USD = ${t.moneda} ${t.tc.toFixed(2)}` : '');
 }
 
 let ultimo = null;
@@ -738,20 +752,21 @@ function render() {
   if ((t.declMin && decl < t.declMin) || (t.declMax && decl > t.declMax)) return vacio(tr('eDecl', { d: nombreD(d), a: money(t.declMin || 0), b: money(t.declMax || 0) }));
   if (t.flete.bandas && wf > t.flete.bandas[t.flete.bandas.length - 1][0]) return vacio(tr('eBanda', { d: nombreD(d), n: t.flete.bandas[t.flete.bandas.length - 1][0] }));
   const r = cotizar(ls.map(l => ({ art: ITEMS.find(a => a.id === l.id), valor: l.valor })), pesoR, wf, vol, d); ultimo = r;
-  $('r-modelo').textContent = 'Tarifa CAM · ' + tr('from') + ' → ' + nombreD(d) + (d.transito ? ' · ' + (d.transito[LANG] || d.transito.es) : '');
+  $('r-modelo').textContent = 'Tarifa CAM · ' + tr('from') + ' → ' + nombreD(d) + (t.tc ? ` · 1 USD = ${fmtLoc(1)}` : '') + (d.transito ? ' · ' + (d.transito[LANG] || d.transito.es) : '');
   const uno = r.lineas.length === 1 ? r.lineas[0].art : null;
   $('r-art').textContent = uno ? uno.nombre : tr('facturaCon', { n: r.lineas.length });
   const tags = $('r-tags'); tags.innerHTML = '';
   const tag = (x, c) => { const e = document.createElement('span'); e.className = 'tag' + (c ? ' ' + c : ''); e.textContent = x; tags.appendChild(e); };
-  if (t.impuesto) tag(t.impuesto.n + ' ' + pct(t.impuesto.pct), 'tax');
+  if (t.impuesto && t.impuesto.tipo === 'dai') { if (uno) { if (uno.hs) tag('SAC ' + uno.hs); tag('DAI ' + uno.dai + '%', 'tax'); } else tag('DAI ' + [...new Set(r.lineas.map(l => l.art.dai))].sort((a, b) => a - b).join('/') + '%', 'tax'); tag('IVA ' + t.impuesto.iva + '%', 'tax'); if (uno && uno.nota) tag('Nota: ' + uno.nota); }
+  else if (t.impuesto) tag(t.impuesto.n + ' ' + pct(t.impuesto.pct), 'tax');
   tag(tr('declarado') + ' ' + money(r.declarado)); tag(red2(wf) + ' ' + tr('facturables')); if (vol > pesoR) tag(tr('vol'));
   $('pend').hidden = !!r.ci.length; $('pend').textContent = r.ci.length ? '' : (t.impuesto ? tr('desdeTxt', { v: money(t.impuesto.desde || 0) }).replace(/^./, c => c.toUpperCase()) + ' — ' + tr('sinImp').toLowerCase() : tr('sinImp')) + '.';
-  const k = (id, v) => { $(id).textContent = usd.format(r2(v)); $(id + '-q').textContent = ''; };
+  const k = (id, v) => { $(id).textContent = usd.format(r2(v)); $(id + '-q').textContent = fmtLoc(v); };
   k('k-imp', r.imp); k('k-serv', r.serv); k('k-tot', r.total);
   const parts = [[tr('kServ'), r.serv, '#2642FE'], [tr('kImp'), r.imp, '#C2620E']], tot = r.total;
   $('bar').innerHTML = tot ? parts.map(x => `<i style="width:${(x[1] / tot * 100).toFixed(2)}%;background:${x[2]}"></i>`).join('') : '';
   $('legend').innerHTML = tot ? parts.map(x => `<span><b style="background:${x[2]}"></b>${x[0]} ${(x[1] / tot * 100).toFixed(0)}%</span>`).join('') : '';
-  $('th-loc').textContent = '';
+  $('th-loc').textContent = t.tc ? t.moneda : '';
   const tb = $('tb'); tb.innerHTML = '';
   if (r.ci.length) { fila(tb, 'sec', tr('secImp')); r.ci.forEach(x => fila(tb, 'it tx', x[0], x[1])); fila(tb, 'sum', tr('totImp'), r.imp); }
   fila(tb, 'sec', tr('secServ'));
@@ -921,9 +936,9 @@ function pintarTarifa() {
     const t = tarDe(d.codigo), f = t.flete, row = tb.insertRow();
     row.insertCell().textContent = nombreD(d);
     row.insertCell().textContent = f.bandas ? f.bandas.map(b => tr('hastaTxt', { h: b[0], p: money(b[1]) })).join(' · ') : tr('porLbTxt', { p: money(f.porLb) }) + (f.minimo ? ' · ' + tr('minTxt', { p: money(f.minimo) }) : '');
-    row.insertCell().textContent = t.cargos.length ? t.cargos.map(c => c.tipo === 'fijo' ? tr('fijoTxt', { n: c.n, p: money(c.v) }) : tr('porLbCargo', { n: c.n, p: money(c.v) }) + (c.min ? ' (' + tr('minTxt', { p: money(c.min) }) + ')' : '')).join(' · ') : '—';
-    row.insertCell().textContent = t.impuesto ? t.impuesto.n + ' ' + pct(t.impuesto.pct) + (t.impuesto.pctFlete ? tr('impFl', { p: t.impuesto.pctFlete }) : '') + (t.impuesto.desde ? ' · ' + tr('desdeTxt', { v: money(t.impuesto.desde) }) : '') : '—';
-    const cond = []; if (t.pesoMin) cond.push(tr('pesoMinTxt', { n: t.pesoMin })); if (t.declMin || t.declMax) cond.push(tr('declTxt', { a: money(t.declMin || 0), b: money(t.declMax || 0) }));
+    row.insertCell().textContent = t.cargos.length ? t.cargos.map(c => c.tipo === 'fijo' ? tr('fijoTxt', { n: c.n, p: money(c.v) }) : c.tipo === 'pctDecl' ? c.n : tr('porLbCargo', { n: c.n, p: money(c.v) }) + (c.min ? ' (' + tr('minTxt', { p: money(c.min) }) + ')' : '')).join(' · ') : '—';
+    row.insertCell().textContent = t.impuesto && t.impuesto.tipo === 'dai' ? 'DAI según inciso SAC (0–15%) + IVA ' + t.impuesto.iva + '% · IVA ' + t.ivaServicio + '% sobre servicios' : t.impuesto ? t.impuesto.n + ' ' + pct(t.impuesto.pct) + (t.impuesto.pctFlete ? tr('impFl', { p: t.impuesto.pctFlete }) : '') + (t.impuesto.desde ? ' · ' + tr('desdeTxt', { v: money(t.impuesto.desde) }) : '') : '—';
+    const cond = []; if (t.tc) cond.push('1 USD = ' + t.moneda + ' ' + t.tc.toFixed(2)); if (t.pesoMin) cond.push(tr('pesoMinTxt', { n: t.pesoMin })); if (t.declMin || t.declMax) cond.push(tr('declTxt', { a: money(t.declMin || 0), b: money(t.declMax || 0) }));
     row.insertCell().textContent = cond.join(' · ') || '—';
   });
   pintarFormulas();
