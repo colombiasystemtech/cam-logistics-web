@@ -167,7 +167,7 @@ html{scroll-behavior:smooth}
 <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end">
 <div style="flex: 1 1 260px"><label for="cam-city" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px"><span data-i18n="cityLabel">País y ciudad de destino</span></label>
 <input id="cam-city" class="cam-input" type="text" placeholder="Ej. Guatemala, Ciudad de Guatemala" data-i18n-ph="cityPh"></div>
-<a class="cam-btn" target="_blank" rel="noopener" href="https://camlogistics.net/calculadora-de-envios/" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 48px; padding: 0 24px; border-radius: 10px; background: #2642FE; color: #FFFFFF; font: 700 16px Inter, sans-serif; text-decoration: none"><span data-i18n="quoteBtn">Ver tarifa</span>
+<a class="cam-btn" id="cam-quote-link" href="calculadora.html?caja=16" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 48px; padding: 0 24px; border-radius: 10px; background: #2642FE; color: #FFFFFF; font: 700 16px Inter, sans-serif; text-decoration: none"><span data-i18n="quoteBtn">Ver tarifa</span>
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
 </div>
 <p style="margin: 12px 0 0; font-size: 12px; line-height: 1.5; color: #4B5563"><span data-i18n="quoteNote">Si necesitas otra medida, te damos presupuesto. Peso máximo por caja: 110 lb.</span></p>
@@ -391,7 +391,7 @@ html{scroll-behavior:smooth}
 <h3 style="margin: 0 0 16px; font: 700 14px Inter, sans-serif; letter-spacing: 1.5px; color: #FFFFFF"><span data-i18n="fHelp">AYUDA</span></h3>
 <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px">
 <a class="cam-flink" target="_blank" rel="noopener" href="https://camlogistics.helgasys.com/consulta-estado/consulta-estado"><span data-i18n="navTrack">Rastrear paquete</span></a>
-<a class="cam-flink" target="_blank" rel="noopener" href="https://camlogistics.net/calculadora-de-envios/"><span data-i18n="tabQuote">Cotizar</span></a>
+<a class="cam-flink" href="calculadora.html"><span data-i18n="tabQuote">Cotizar</span></a>
 <a class="cam-flink" href="#faq"><span data-i18n="navFaq">Preguntas</span></a>
 <a class="cam-flink" href="#agentes"><span data-i18n="navAgents">Agentes</span></a>
 </div>
@@ -445,6 +445,7 @@ html{scroll-behavior:smooth}
   });});
   document.querySelectorAll('.box-btn').forEach(function(b){b.addEventListener('click',function(){
     document.querySelectorAll('.box-btn').forEach(function(x){var on=x===b; x.classList.toggle('active',on); x.setAttribute('aria-pressed',on?'true':'false');});
+    var ql=document.getElementById('cam-quote-link'); if(ql) ql.href='calculadora.html?caja='+b.getAttribute('data-box');
   });});
   var saved = null; try{ saved = localStorage.getItem('cam-lang'); }catch(e){}
   if(!saved){ var nav=(navigator.language||'es').slice(0,2); saved = T[nav] ? nav : 'es'; }
